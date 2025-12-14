@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#f0f9ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="description" content="KPSS 2026 Hazırlık ve Koçluk Uygulaması">
+    <title>KPSS 2026 - Şampiyon Modu</title>
+    
+    <!-- React & Tailwind -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Nunito', sans-serif; background-color: #f0f9ff; overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+        h1, h2, h3, .brand-font { font-family: 'Fredoka', sans-serif; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .smooth-scroll { -webkit-overflow-scrolling: touch; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .flip-card-inner { transition: transform 0.6s; }
+        .flipped .flip-card-inner { transform: rotateY(180deg); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- MOCK DATA (Çevrimdışı Mod Verileri) ---
+        // Kullanıcı anahtar girmese bile sistemin boş görünmemesi için
+        const MOCK_QUESTIONS = [
+            { question: "Aşağıdakilerden hangisi Piaget'nin bilişsel gelişim kuramına göre işlem öncesi dönemin özelliklerinden biridir?", options: ["Korunum kazanılması", "Tersine çevirebilme", "Benmerkezcilik", "Soyut düşünme", "Hipotez kurma"], correctIndex: 2, explanation: "İşlem öncesi dönemde (2-7 yaş) çocuklar olaylara sadece kendi bakış açılarından bakarlar (Benmerkezcilik)." },
+            { question: "Okul öncesi eğitimde 'Sarmal Program' yaklaşımı neyi ifade eder?", options: ["Konuların yıl içinde tekrar edilerek genişletilmesi", "Sadece belirli aylarda eğitim verilmesi", "Aile katılımının zorunlu olması", "Yabancı dil ağırlıklı eğitim", "Sınav odaklı sistem"], correctIndex: 0, explanation: "Sarmal yapı, konuların süreç içerisinde yeri geldikçe tekrar edilerek ve kapsamı genişletilerek işlenmesidir." },
+            { question: "Vygotsky'e göre çocuğun tek başına yapamadığı ancak bir yetişkin rehberliğinde yapabildiği alan hangisidir?", options: ["Duyu Motor Alan", "Yakınsak Gelişim Alanı (ZPD)", "Somut İşlemler", "Özümleme Alanı", "Uyum Kurma"], correctIndex: 1, explanation: "Yakınsak Gelişim Alanı, çocuğun mevcut potansiyeli ile rehberlik alarak ulaşabileceği potansiyel arasındaki mesafedir." },
+            { question: "Aşağıdakilerden hangisi 2024 MEB Okul Öncesi Eğitim Programı'nın temel özelliklerinden biri değildir?", options: ["Oyun temellidir", "Esnektir", "Konu merkezlidir", "Çocuğu merkeze alır", "Sarmaldır"], correctIndex: 2, explanation: "MEB Programı konu merkezli değil, çocuk ve oyun merkezlidir. Konular sadece araçtır." },
+            { question: "Freud'un psikoseksüel gelişim kuramına göre 3-6 yaş arasını kapsayan dönem hangisidir?", options: ["Oral", "Anal", "Fallik", "Latent", "Genital"], correctIndex: 2, explanation: "3-6 yaş arası Fallik dönemdir. Bu dönemde cinsiyet farklılıkları ve özdeşim kurma ön plandadır." },
+            { question: "Bir çocuğun 'Güneş üşüdüğü için battaniye örtmüş' demesi aşağıdakilerden hangisine örnektir?", options: ["Yapaycılık", "Canlandırmacılık (Animizm)", "Tümevarım", "Tümdengelim", "Özelden özele akıl yürütme"], correctIndex: 1, explanation: "Cansız nesnelere canlılık özellikleri yükleme durumuna Animizm (Canlandırmacılık) denir." },
+            { question: "Montessori yaklaşımında öğretmenin rolü nasıldır?", options: ["Otoriter ve yönetici", "Gözlemci ve rehber", "Sadece disiplin sağlayıcı", "Programı dikte eden", "Pasif izleyici"], correctIndex: 1, explanation: "Montessori'de öğretmen çevreyi hazırlar, çocuğu gözlemler ve gerektiğinde rehberlik eder." },
+            { question: "Hangisi ince motor becerisi gerektirir?", options: ["Koşmak", "Zıplamak", "Makasla kağıt kesmek", "Tırmanmak", "Topa tekme atmak"], correctIndex: 2, explanation: "Makasla kesmek küçük kas gruplarını (el-göz koordinasyonu) gerektiren ince motor bir beceridir." },
+            { question: "Reggio Emilia yaklaşımında 'Çocuğun yüz dili' neyi ifade eder?", options: ["Sadece konuşmayı", "Resim yapmayı", "Çocuğun kendini ifade etme yollarının çeşitliliğini", "Yabancı dil öğrenimini", "Yüz mimiklerini"], correctIndex: 2, explanation: "Çocuğun resim, heykel, drama, müzik vb. birçok yolla kendini ifade edebileceğini savunur." },
+            { question: "Okul öncesi dönemde 'Okuma Yazmaya Hazırlık' çalışmaları neleri KAPSAMAZ?", options: ["Kalem tutma", "Harf yazdırma çalışmaları", "Görsel algı", "İşitsel algı", "Nefes çalışmaları"], correctIndex: 1, explanation: "Okul öncesinde harf öğretimi ve yazdırma yoktur. Sadece harfleri tanıma ve sesleri hissetme (fonolojik farkındalık) vardır." }
+        ];
+
+        const MOCK_FLASHCARDS = [
+            { term: "Yakınsak Gelişim Alanı", definition: "Çocuğun tek başına yapabildikleri ile destek alarak yapabilecekleri arasındaki farktır. Vygotsky'nin kavramıdır.", mnemonic: "YAKIN durursan destek olursun." },
+            { term: "Animizm", definition: "Cansız nesnelere canlılık özelliği yükleme. Örn: Oyuncak bebeğin acıktığını söylemek.", mnemonic: "ANİmasyon filmlerinde her şey canlıdır." },
+            { term: "Nesne Sürekliliği", definition: "Bir nesnenin görme alanından çıksa bile yok olmadığını bilmesidir. (0-2 yaş kazanılır).", mnemonic: "Nesne SÜREKLİ oradadır, gitmez." },
+            { term: "Benmerkezcilik (Egosantrizm)", definition: "Dünyayı sadece kendi bakış açısıyla algılama, başkasının perspektifini alamama.", mnemonic: "BEN merkezdeyim, dünya benim etrafımda dönüyor." },
+            { term: "Özelden Özele Akıl Yürütme", definition: "İki özel durum arasında mantıksal olmayan bağ kurma. Örn: Kahvaltı yapmadım o halde sabah olmadı.", mnemonic: "Özel bir durumdan diğer özel duruma atlama." }
+        ];
+
+        const MOCK_TASKS = [
+            "Bugün 20 adet Gelişim Psikolojisi sorusu çöz.",
+            "ÖYT'den 'Öğretim İlkeleri' konusunu tekrar et.",
+            "15 dakika kitap oku ve zihnini dinlendir.",
+            "Dünkü yanlış yaptığın sorulara göz at."
+        ];
+
+        // --- ICONS ---
+        const IconHome = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+        const IconList = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+        const IconBookOpen = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+        const IconPlay = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+        const IconTool = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>;
+        const IconBrain = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>;
+        const IconCheck = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
+        const IconTrash = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+        const IconFileText = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
+        const IconClock = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const IconSparkles = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.9 14.9L12 12l2.1 2.9L17 12l-2.9 2.1L12 17l-2.1-2.9L7 12z"/><path d="M10 2l2 4 2-4 4-2-4-2-2-4-2 4-4 2 4 2z"/><path d="M22 10l-4 2 4 2 2-4-2-4z"/></svg>;
+        const IconRotate = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>;
+        const IconKey = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>;
+        const IconCalculator = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>;
+        const IconTimer = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+        const IconEdit = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
+        const IconTarget = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+        const IconAlertCircle = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+        const IconGlobe = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+        const IconWifiOff = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>;
+        const IconZap = ({size=20, className}) => <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+
+        const quotes = [
+            "Bugün attığın her imza, yarın atanacağın kararnamenin provasıdır.",
+            "KPSS bir zeka sınavı değil, sabır ve strateji sınavıdır.",
+            "15 yıllık tecrüben, 2026'da sana sınıfının kapısını açacak anahtardır.",
+            "Anatomi gitti, yükün hafifledi. Şimdi koşma zamanı!",
+            "Ertelemek, başarının en sinsi düşmanıdır. Şimdi başla."
+        ];
+
+        const fullCurriculum = {
+            OABT: [
+                { subject: "Okul Öncesi Eğitime Giriş", subtopics: ["Tanım", "İlkeler", "Kuramcılar"] },
+                { subject: "Psikoloji (Gelişim & Öğrenme)", subtopics: ["Bilişsel", "Dil", "Kişilik"] },
+                { subject: "Anne Çocuk Sağlığı", subtopics: ["Üreme Sağlığı", "Beslenme", "Hastalıklar"] },
+                { subject: "Erken Çocuklukta Drama", subtopics: ["Tanım", "Aşamalar", "Teknikler"] },
+                { subject: "Yaklaşımlar & Programlar", subtopics: ["Montessori", "Reggio", "MEB 2024"] },
+                { subject: "Alan Eğitimi (Fen/Mat/Müzik/Görsel)", subtopics: ["Yöntemler", "Materyaller"] },
+                { subject: "Çocuk Edebiyatı", subtopics: ["Türler", "Kitap Seçimi"] },
+                { subject: "Özel Eğitim", subtopics: ["BEP", "Kaynaştırma"] }
+            ],
+            Egitim: [
+                { subject: "Gelişim Psikolojisi", subtopics: ["Temel Kavramlar"] },
+                { subject: "Öğrenme Psikolojisi", subtopics: ["Kuramlar"] },
+                { subject: "ÖYT", subtopics: ["Modeller", "Stratejiler"] },
+                { subject: "Program Geliştirme", subtopics: ["Ögeler"] },
+                { subject: "Ölçme", subtopics: ["Güvenirlik", "Geçerlik"] },
+                { subject: "Rehberlik", subtopics: ["Hizmetler"] }
+            ],
+            AGS: [
+                { subject: "Türkçe", subtopics: ["Paragraf", "Dil Bilgisi"] },
+                { subject: "Matematik", subtopics: ["Sayılar", "Problemler"] },
+                { subject: "Tarih", subtopics: ["Osmanlı", "İnkılap"] },
+                { subject: "Coğrafya", subtopics: ["Fiziki", "Beşeri"] },
+                { subject: "Vatandaşlık", subtopics: ["Hukuk", "Anayasa"] }
+            ]
+        };
+
+        const toolsData = [
+            { id: 9, title: "AI Anahtarı", desc: "Online Mod", iconName: "Key", type: "internal", action: "apiKey" },
+            { id: 1, title: "Puan Hesapla", desc: "Tahmini P121", iconName: "Calculator", type: "internal", action: "scoreCalc" },
+            { id: 2, title: "Kronometre", desc: "Deneme Süresi", iconName: "Timer", type: "internal", action: "timer" },
+            { id: 4, title: "Not Defteri", desc: "Hızlı notlar", iconName: "Edit3", type: "internal", action: "notepad" },
+            { id: 7, title: "MEB Müfredat", desc: "Resmi Kaynak", link: "https://tegm.meb.gov.tr/", iconName: "BookOpen" },
+            { id: 8, title: "ÖSYM AİS", desc: "Başvuru", link: "https://ais.osym.gov.tr/", iconName: "Globe" }
+        ];
+
+        // --- HELPER FUNCTIONS ---
+        const cleanAndParseJSON = (text) => {
+            try {
+                let clean = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const start = clean.indexOf('['); const end = clean.lastIndexOf(']');
+                const startObj = clean.indexOf('{'); const endObj = clean.lastIndexOf('}');
+                
+                // Array mi Obje mi anla
+                if (start !== -1 && end !== -1 && (start < startObj || startObj === -1)) {
+                     clean = clean.substring(start, end + 1);
+                } else if (startObj !== -1 && endObj !== -1) {
+                    clean = clean.substring(startObj, endObj + 1);
+                }
+                return JSON.parse(clean);
+            } catch (e) { return null; }
+        };
+
+        const calculateTimeRemaining = () => {
+            const kpssDate = new Date('2026-08-02T10:00:00').getTime();
+            const now = new Date().getTime();
+            const distance = kpssDate - now;
+            if (distance < 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, finished: true };
+            return {
+                days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+                hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+                minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+                seconds: Math.floor((distance % (1000 * 60)) / 1000),
+                finished: false
+            };
+        };
+
+        // --- COMPONENT DEFINITIONS ---
+
+        const Dashboard = ({ dailyQuote, timeRemaining, dailyTasks, completedTopics, setActiveTab }) => (
+            <div className="space-y-6 animate-fade-in p-4 pb-24 md:pb-8 h-full overflow-y-auto smooth-scroll">
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h2 className="text-2xl font-bold mb-2">Hoş geldin Hocam!</h2>
+                        <p className="text-sm opacity-90 mb-4">"{dailyQuote}"</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => setActiveTab('mock')} className="bg-white text-indigo-700 px-4 py-2 rounded-xl font-bold text-sm shadow-md active:scale-95 transition">Deneme Çöz</button>
+                            <button onClick={() => setActiveTab('planner')} className="bg-indigo-500/50 text-white px-4 py-2 rounded-xl font-bold text-sm backdrop-blur-md active:scale-95 transition">Planım</button>
+                        </div>
+                    </div>
+                    <div className="absolute right-[-20px] top-[-20px] opacity-20"><IconBrain size={120}/></div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl shadow-sm border border-pink-100">
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="font-bold text-pink-700">Sınava Kalan</h3>
+                        <div className="p-2 bg-pink-50 rounded-full text-pink-500"><IconClock size={20}/></div>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-800 text-center py-2">
+                        {timeRemaining.days} Gün <span className="text-sm text-gray-400 font-normal">{timeRemaining.hours}sa</span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
+                        <div className="text-sm text-emerald-600 font-bold mb-1">Görevler</div>
+                        <div className="text-3xl font-black text-gray-800">{dailyTasks.filter(t => !t.completed).length}</div>
+                        <div className="text-xs text-gray-400">Bekleyen</div>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-blue-100">
+                        <div className="text-sm text-blue-600 font-bold mb-1">Müfredat</div>
+                        <div className="text-3xl font-black text-gray-800">{Object.keys(completedTopics).length}</div>
+                        <div className="text-xs text-gray-400">Tamamlandı</div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const Tools = ({ activeTool, setActiveTool, toolsData, userApiKey, saveApiKey, notes, saveNote, scoreInputs, setScoreInputs, calculateScore, calculatedScore, stopwatch, setIsTimerRunning, isTimerRunning }) => {
+            const iconMap = {
+                Key: IconKey,
+                Calculator: IconCalculator,
+                Timer: IconTimer,
+                Edit3: IconEdit,
+                BookOpen: IconBookOpen,
+                Globe: IconGlobe
+            };
+
+            return (
+                <div className="space-y-4 animate-fade-in p-4 pb-24 md:pb-8 h-full overflow-y-auto smooth-scroll">
+                    <div className="p-4 rounded-xl bg-orange-500 text-white shadow-md"><h2 className="text-xl font-bold flex items-center gap-2"><IconTool size={24}/> Araçlar</h2></div>
+                    
+                    {/* Tool Modals */}
+                    {activeTool === 'apiKey' && (
+                        <div className="bg-white p-4 rounded-xl shadow border border-indigo-200 mb-4 animate-fade-in">
+                            <h3 className="font-bold text-indigo-700 mb-2">Gemini AI Anahtarı</h3>
+                            <p className="text-xs text-gray-500 mb-2">Google'dan alacağın (ücretsiz) API anahtarını buraya girerek "AI Koç" ve "Soru Üretme" gibi özellikleri aktif edebilirsin. Anahtarın sadece senin tarayıcında saklanır.</p>
+                            <input type="text" value={userApiKey} onChange={(e)=>saveApiKey(e.target.value)} placeholder="AIzaSy..." className="w-full border p-2 rounded mb-2 text-sm font-mono text-gray-700" />
+                            <div className="flex justify-end gap-2">
+                                {userApiKey && <button onClick={() => {saveApiKey(""); setActiveTool(null);}} className="text-xs text-red-500 underline mr-2">Anahtarı Sil (Çevrimdışı Mod)</button>}
+                                <button onClick={()=>setActiveTool(null)} className="bg-indigo-600 text-white px-4 py-2 rounded font-bold text-sm">Kaydet & Kapat</button>
+                            </div>
+                        </div>
+                    )}
+                    {activeTool === 'scoreCalc' && (
+                        <div className="bg-white p-4 rounded-xl shadow border border-violet-200 mb-4">
+                            <h3 className="font-bold text-violet-700 mb-2">Puan Hesapla</h3>
+                            <div className="grid grid-cols-2 gap-2 mb-2">
+                                <input type="number" placeholder="GY" className="border p-2 rounded" onChange={e=>setScoreInputs({...scoreInputs, gy: e.target.value})}/>
+                                <input type="number" placeholder="GK" className="border p-2 rounded" onChange={e=>setScoreInputs({...scoreInputs, gk: e.target.value})}/>
+                                <input type="number" placeholder="Eğitim" className="border p-2 rounded" onChange={e=>setScoreInputs({...scoreInputs, egt: e.target.value})}/>
+                                <input type="number" placeholder="ÖABT" className="border p-2 rounded" onChange={e=>setScoreInputs({...scoreInputs, oabt: e.target.value})}/>
+                            </div>
+                            <button onClick={calculateScore} className="bg-violet-600 text-white w-full py-2 rounded font-bold mb-2">Hesapla</button>
+                            {calculatedScore && <div className="text-center font-bold text-xl text-violet-800">{calculatedScore}</div>}
+                            <button onClick={()=>setActiveTool(null)} className="text-gray-500 text-sm underline w-full">Kapat</button>
+                        </div>
+                    )}
+                    {activeTool === 'timer' && (
+                         <div className="bg-white p-6 rounded-xl shadow-lg border border-orange-200 mb-6 text-center">
+                             <h3 className="font-bold text-lg mb-2 text-orange-700">Kronometre</h3>
+                             <div className="text-5xl font-mono text-gray-800 mb-6">{Math.floor(stopwatch / 60).toString().padStart(2, '0')}:{ (stopwatch % 60).toString().padStart(2, '0') }</div>
+                             <div className="flex justify-center gap-3">
+                                 <button onClick={()=>setIsTimerRunning(!isTimerRunning)} className={`px-6 py-3 rounded-lg font-bold text-white ${isTimerRunning ? 'bg-red-500' : 'bg-green-500'}`}>{isTimerRunning ? 'Durdur' : 'Başlat'}</button>
+                                 <button onClick={()=>{setIsTimerRunning(false); setStopwatch(0);}} className="px-6 py-3 rounded-lg font-bold bg-gray-200 text-gray-700">Sıfırla</button>
+                             </div>
+                             <button onClick={()=>setActiveTool(null)} className="mt-4 text-sm text-gray-500 underline block mx-auto p-2">Kapat</button>
+                         </div>
+                     )}
+                    {activeTool === 'notepad' && (
+                        <div className="bg-white p-4 rounded-xl shadow border border-yellow-200 mb-4">
+                            <h3 className="font-bold text-yellow-700 mb-2">Not Defteri</h3>
+                            <textarea className="w-full h-32 border p-2 rounded mb-2" value={notes} onChange={(e)=>saveNote(e.target.value)}></textarea>
+                            <button onClick={()=>setActiveTool(null)} className="text-gray-500 text-sm underline w-full">Kapat</button>
+                        </div>
+                    )}
+                    
+                    {/* The Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                        {toolsData.map(t => {
+                            const IconComp = iconMap[t.iconName] || IconTool;
+                            return (
+                                <div key={t.id} onClick={() => t.type==='internal' ? setActiveTool(t.action) : window.open(t.link, '_blank')} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center gap-2 active:bg-gray-50 cursor-pointer h-24">
+                                    <IconComp size={24} className="text-indigo-500"/>
+                                    <span className="text-xs font-bold text-gray-700">{t.title}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        const Syllabus = ({ completedTopics, toggleTopic, openLink, generateFlashcard }) => (
+            <div className="space-y-4 animate-fade-in p-4 pb-24 md:pb-8 h-full overflow-y-auto smooth-scroll">
+                <div className="p-4 rounded-2xl bg-blue-600 text-white shadow-md"><h2 className="text-xl font-bold flex items-center gap-2"><IconBookOpen size={24}/> Müfredat</h2></div>
+                {['OABT', 'AGS', 'Egitim'].map(type => (
+                    <div key={type} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="p-3 bg-gray-50 border-b font-bold text-gray-700 flex justify-between">
+                            <span>{type === 'Egitim' ? 'Eğitim Bilimleri' : type}</span>
+                            <span className="text-xs bg-gray-200 px-2 py-1 rounded">{fullCurriculum[type].length} Konu</span>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                            {fullCurriculum[type].map((item, idx) => (
+                                <div key={idx} className="p-4">
+                                    <div className="flex items-start gap-3 mb-2">
+                                        <button onClick={() => toggleTopic(item.subject, completedTopics[item.subject])} className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${completedTopics[item.subject] ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}`}>
+                                            {completedTopics[item.subject] && <IconCheck size={14} />}
+                                        </button>
+                                        <div className="flex-1">
+                                            <span className={`font-bold text-gray-800 block ${completedTopics[item.subject] ? 'line-through text-gray-400' : ''}`}>{item.subject}</span>
+                                            {item.subtopics && (
+                                                <ul className="list-disc pl-4 mt-1 space-y-1">
+                                                    {item.subtopics.map((sub, sIdx) => (
+                                                        <li key={sIdx} className="text-xs text-gray-500">{sub}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 pl-9 mt-3">
+                                        <button onClick={() => openLink(item.subject, 'youtube')} className="flex-1 bg-red-50 text-red-600 py-2 rounded-lg text-xs font-bold border border-red-100 active:bg-red-100 flex items-center justify-center gap-1">
+                                            <IconPlay size={12}/> İzle
+                                        </button>
+                                        <button onClick={() => openLink(item.subject, 'web')} className="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg text-xs font-bold border border-blue-100 active:bg-blue-100 flex items-center justify-center gap-1">
+                                            <IconFileText size={12}/> Oku
+                                        </button>
+                                        <button onClick={() => generateFlashcard(item.subject)} className="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg border border-yellow-200 active:bg-yellow-200">
+                                            <IconSparkles size={14}/>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+
+        const Planner = ({ dailyTasks, generateDailyTasks, toggleTask, deleteTask, isLoading }) => (
+            <div className="space-y-4 animate-fade-in p-4 pb-24 md:pb-8 h-full overflow-y-auto smooth-scroll">
+                <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white shadow-lg flex justify-between items-center">
+                    <div><h2 className="text-xl font-bold flex items-center gap-2"><IconList/> Günlük Plan</h2></div>
+                    <button onClick={generateDailyTasks} disabled={isLoading} className="bg-white text-emerald-600 px-4 py-2 rounded-xl font-bold text-xs shadow-md active:scale-95 disabled:opacity-50">
+                        {isLoading ? '...' : '+ Görev Ekle'}
+                    </button>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    {dailyTasks.length === 0 ? <div className="p-8 text-center text-gray-400">Henüz görev yok.</div> : 
+                        dailyTasks.map(task => (
+                            <div key={task.id} className="p-4 border-b border-gray-100 flex items-center gap-3">
+                                <button onClick={() => toggleTask(task.id, task.completed)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-300'}`}>
+                                    {task.completed && <IconCheck size={14}/>}
+                                </button>
+                                <span className={`flex-1 text-sm ${task.completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{task.text}</span>
+                                <button onClick={() => deleteTask(task.id)} className="text-gray-300 hover:text-red-500"><IconTrash size={18}/></button>
+                            </div>
+                        ))
+                    }
+                </div>
+            </div>
+        );
+
+        const SmartTest = ({ callGemini, setActiveTab, setActiveTool, saveMistakes }) => {
+            const [step, setStep] = useState(1);
+            const [selectedCategory, setSelectedCategory] = useState(null);
+            const [selectedSubject, setSelectedSubject] = useState(null);
+            const [focusTopic, setFocusTopic] = useState("");
+            const [qCount, setQCount] = useState(5);
+            const [isLoading, setIsLoading] = useState(false);
+            const [questions, setQuestions] = useState([]);
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [answers, setAnswers] = useState({});
+            const [showResult, setShowResult] = useState(false);
+
+            const generateTest = async () => {
+                setIsLoading(true);
+                const prompt = `KPSS ${selectedCategory} için '${selectedSubject}' dersinin '${focusTopic}' konusuyla ilgili ${qCount} adet zorlayıcı, yeni nesil soru hazırla. ANATOMİ YOK. Çıktı SADECE JSON Array: [{"question":"...","options":["A","B","C","D","E"],"correctIndex":0,"explanation":"..."}]`;
+                
+                try {
+                    const text = await callGemini(prompt, true, "test"); // Mock type "test"
+                    const qs = cleanAndParseJSON(text);
+                    if(qs) { setQuestions(qs.slice(0, qCount)); setStep(3); } else throw new Error("Format");
+                } catch(e) { alert("Soru üretilemedi: " + e.message); } finally { setIsLoading(false); }
+            };
+
+            const handleFinish = () => {
+                const wrongQuestions = questions.filter((q, i) => answers[i] !== q.correctIndex);
+                if (wrongQuestions.length > 0) {
+                    saveMistakes(wrongQuestions.map(q => ({
+                        question: q.question,
+                        correctAnswer: q.options[q.correctIndex],
+                        explanation: q.explanation,
+                        date: new Date()
+                    })));
+                }
+                setStep(1); setQuestions([]); setAnswers({}); setShowResult(false);
+            };
+
+            if (step === 1) return (
+                <div className="p-4 h-full overflow-y-auto pb-20">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100">
+                        <h2 className="text-xl font-bold text-indigo-700 mb-4 flex items-center gap-2"><IconTarget/> Konu Pekiştirme</h2>
+                        <div className="space-y-4">
+                            <div><label className="block text-sm font-bold text-gray-700 mb-2">1. Alan Seç</label><div className="flex gap-2">{['OABT', 'Egitim', 'AGS'].map(cat => (<button key={cat} onClick={() => {setSelectedCategory(cat); setSelectedSubject(null);}} className={`flex-1 py-2 rounded-lg text-sm font-bold border-2 transition ${selectedCategory===cat ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500'}`}>{cat}</button>))}</div></div>
+                            {selectedCategory && (<div><label className="block text-sm font-bold text-gray-700 mb-2">2. Ders Seç</label><select className="w-full p-3 rounded-xl border border-gray-300 bg-white" onChange={(e) => setSelectedSubject(e.target.value)}><option value="">Ders Seçiniz...</option>{fullCurriculum[selectedCategory].map((s, i) => <option key={i} value={s.subject}>{s.subject}</option>)}</select></div>)}
+                            {selectedSubject && (<div><label className="block text-sm font-bold text-gray-700 mb-2">3. Konu</label><input type="text" className="w-full p-3 rounded-xl border border-gray-300" placeholder="Örn: Piaget" value={focusTopic} onChange={(e) => setFocusTopic(e.target.value)} /><div className="mt-4"><label className="block text-sm font-bold text-gray-700 mb-2">Soru Sayısı: {qCount}</label><input type="range" min="3" max="20" value={qCount} onChange={(e)=>setQCount(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"/></div><button onClick={generateTest} disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl mt-4 shadow-lg">{isLoading ? 'Hazırlanıyor...' : 'Testi Oluştur'}</button></div>)}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            if (step === 3) return (
+                <div className="flex flex-col h-full bg-white md:m-4 md:rounded-2xl overflow-hidden pb-20 md:pb-0">
+                    <div className="bg-indigo-50 p-4 border-b flex justify-between items-center"><span className="font-bold text-indigo-800 text-sm">{selectedSubject}</span><span className="text-xs bg-white px-2 py-1 rounded border text-gray-500">{currentIndex + 1}/{questions.length}</span></div>
+                    <div className="flex-1 overflow-y-auto p-6 smooth-scroll">
+                        <h3 className="font-bold text-gray-800 text-lg mb-6 leading-relaxed">{questions[currentIndex].question}</h3>
+                        <div className="space-y-3">{questions[currentIndex].options.map((opt, i) => (<button key={i} onClick={() => setAnswers({...answers, [currentIndex]: i})} className={`w-full text-left p-4 rounded-xl border-2 transition active:scale-[0.98] ${answers[currentIndex] === i ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 hover:bg-gray-50'}`}><span className="font-bold mr-2">{String.fromCharCode(65+i)})</span> {opt}</button>))}</div>
+                        {showResult && <div className={`mt-6 p-4 rounded-xl ${answers[currentIndex] === questions[currentIndex].correctIndex ? 'bg-green-50' : 'bg-red-50'} border`}><p className="font-bold">{answers[currentIndex] === questions[currentIndex].correctIndex ? 'Doğru!' : 'Yanlış.'} Cevap: {questions[currentIndex].options[questions[currentIndex].correctIndex]}</p><p className="text-sm mt-2">{questions[currentIndex].explanation}</p></div>}
+                    </div>
+                    <div className="p-4 border-t bg-white flex justify-between gap-4"><button onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0} className="px-4 py-3 bg-gray-100 rounded-xl font-bold disabled:opacity-50">Geri</button><button onClick={() => setShowResult(!showResult)} className="flex-1 px-4 py-3 bg-yellow-100 text-yellow-700 rounded-xl font-bold">Cevap</button>{currentIndex < questions.length - 1 ? <button onClick={() => { setCurrentIndex(currentIndex + 1); setShowResult(false); }} className="px-4 py-3 bg-indigo-600 text-white rounded-xl font-bold">İleri</button> : <button onClick={handleFinish} className="px-4 py-3 bg-green-600 text-white rounded-xl font-bold">Bitir</button>}</div>
+                </div>
+            );
+        };
+
+        const ExamView = ({ quizState, setQuizState, examType, setExamType, questionCount, setQuestionCount, startExam, currentQIndex, setCurrentQIndex, quizQuestions, userAnswers, setUserAnswers, setActiveTab, setActiveTool, saveMistakes }) => {
+            const finishExam = () => {
+                const wrongQuestions = quizQuestions.filter((q, i) => userAnswers[i] !== q.correctIndex);
+                if (wrongQuestions.length > 0) {
+                    saveMistakes(wrongQuestions.map(q => ({
+                        question: q.question,
+                        correctAnswer: q.options[q.correctIndex],
+                        explanation: q.explanation,
+                        date: new Date()
+                    })));
+                }
+                setQuizState('finished');
+            };
+
+            if (quizState === 'idle') {
+                return (
+                    <div className="p-6 flex flex-col items-center justify-center h-full text-center space-y-6">
+                        <div className="bg-white p-6 rounded-3xl shadow-lg border border-indigo-50 w-full max-w-sm">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Genel Deneme</h2>
+                            <div className="flex gap-2 mb-4 bg-gray-100 p-1 rounded-xl">
+                                <button onClick={()=>setExamType('OABT')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${examType==='OABT'?'bg-white shadow text-indigo-600':'text-gray-500'}`}>ÖABT</button>
+                                <button onClick={()=>setExamType('AGS')} className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${examType==='AGS'?'bg-white shadow text-indigo-600':'text-gray-500'}`}>AGS</button>
+                            </div>
+                            <div className="mb-6"><label className="block text-sm font-bold text-gray-700 mb-2">Soru Sayısı: {questionCount}</label><input type="range" min="5" max="50" step="5" value={questionCount} onChange={(e)=>setQuestionCount(parseInt(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"/></div>
+                            <button onClick={startExam} className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-3 rounded-xl shadow-lg transform transition active:scale-95">Başlat</button>
+                        </div>
+                    </div>
+                );
+            }
+            if (quizState === 'loading') return <div className="flex flex-col items-center justify-center h-full"><div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div><p className="text-gray-500 font-bold">Sorular Hazırlanıyor...</p></div>;
+            if (quizState === 'active') return (
+                <div className="flex flex-col h-full bg-white md:m-4 md:rounded-2xl overflow-hidden pb-20 md:pb-0">
+                    <div className="bg-gray-50 p-4 border-b flex justify-between items-center shrink-0">
+                        <span className="font-bold text-gray-700">Soru {currentQIndex + 1}/{quizQuestions.length}</span>
+                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">{examType}</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 smooth-scroll">
+                        <h3 className="text-lg font-bold text-gray-900 mb-6 leading-relaxed">{quizQuestions[currentQIndex].question}</h3>
+                        <div className="space-y-3">
+                            {quizQuestions[currentQIndex].options.map((opt, i) => (
+                                <button key={i} onClick={()=>setUserAnswers({...userAnswers, [currentQIndex]: i})} className={`w-full text-left p-4 rounded-xl border-2 transition active:scale-[0.98] ${userAnswers[currentQIndex] === i ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-100 hover:bg-gray-50'}`}>
+                                    <span className="font-bold mr-2">{String.fromCharCode(65+i)})</span> {opt}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="p-4 border-t bg-white shrink-0 flex justify-between gap-4 sticky bottom-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                        <button onClick={()=>setCurrentQIndex(Math.max(0, currentQIndex-1))} disabled={currentQIndex===0} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-bold disabled:opacity-50">Geri</button>
+                        {currentQIndex < quizQuestions.length-1 ? 
+                            <button onClick={()=>setCurrentQIndex(currentQIndex+1)} className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold shadow-lg">İleri</button> : 
+                            <button onClick={finishExam} className="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold shadow-lg">Bitir</button>
+                        }
+                    </div>
+                </div>
+            );
+            if (quizState === 'finished') return (
+                <div className="flex flex-col items-center justify-center h-full text-center p-6 pb-20">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">Bitti!</h2>
+                    <div className="text-6xl font-black text-indigo-600 mb-6">{Object.keys(userAnswers).filter(k => userAnswers[k] === quizQuestions[k].correctIndex).length}<span className="text-2xl text-gray-400">/{quizQuestions.length}</span></div>
+                    <div className="bg-gray-50 p-4 rounded-xl text-left w-full max-w-md h-64 overflow-y-auto mb-4 custom-scroll">
+                        {quizQuestions.map((q, i) => (
+                            <div key={i} className="mb-4 border-b pb-2 last:border-0">
+                                <p className="font-bold text-xs mb-1">{i+1}. {q.question}</p>
+                                <div className="text-xs text-green-600 font-bold">Cevap: {q.options[q.correctIndex]}</div>
+                                <div className="text-xs text-gray-500 mt-1 italic">{q.explanation}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <button onClick={()=>setQuizState('idle')} className="w-full max-w-xs bg-gray-800 text-white py-4 rounded-xl font-bold">Yeni Sınav</button>
+                </div>
+            );
+            return null;
+        };
+
+        const MistakesView = ({ mistakes, deleteMistake }) => (
+            <div className="space-y-4 animate-fade-in p-4 pb-24 md:pb-8 h-full overflow-y-auto smooth-scroll">
+                <div className="p-4 rounded-xl bg-red-500 text-white shadow-md"><h2 className="text-xl font-bold flex items-center gap-2"><IconAlertCircle size={24}/> Hata Defteri</h2></div>
+                {mistakes.length === 0 ? <div className="text-center text-gray-400 mt-10">Henüz kaydedilmiş yanlışın yok.</div> : 
+                    mistakes.map((m, idx) => (
+                        <div key={idx} className="bg-white p-4 rounded-xl shadow-sm border border-red-100">
+                            <p className="font-bold text-gray-800 mb-2">{m.question}</p>
+                            <div className="bg-green-50 text-green-800 p-2 rounded text-sm mb-2 font-bold">Doğru: {m.correctAnswer}</div>
+                            <p className="text-xs text-gray-500 italic mb-3">{m.explanation}</p>
+                            <button onClick={() => deleteMistake(idx)} className="text-red-500 text-xs font-bold flex items-center gap-1"><IconTrash size={14}/> Listeden Sil</button>
+                        </div>
+                    ))
+                }
+            </div>
+        );
+
+        // Main App Component
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [userApiKey, setUserApiKey] = useState("");
+            
+            // Data States with LocalStorage Initialization
+            const [dailyTasks, setDailyTasks] = useState(() => JSON.parse(localStorage.getItem('kpssDailyTasks')) || []);
+            const [completedTopics, setCompletedTopics] = useState(() => JSON.parse(localStorage.getItem('kpssProgress')) || {});
+            const [mistakes, setMistakes] = useState(() => JSON.parse(localStorage.getItem('kpssMistakes')) || []);
+            
+            const [quizState, setQuizState] = useState('idle');
+            const [quizQuestions, setQuizQuestions] = useState([]);
+            const [currentQIndex, setCurrentQIndex] = useState(0);
+            const [userAnswers, setUserAnswers] = useState({});
+            const [examType, setExamType] = useState('OABT');
+            const [questionCount, setQuestionCount] = useState(10);
+            const [activeTool, setActiveTool] = useState(null);
+            const [scoreInputs, setScoreInputs] = useState({ gy: 0, gk: 0, egt: 0, oabt: 0 });
+            const [calculatedScore, setCalculatedScore] = useState(null);
+            const [stopwatch, setStopwatch] = useState(0);
+            const [isTimerRunning, setIsTimerRunning] = useState(false);
+            const [notes, setNotes] = useState(() => localStorage.getItem('kpssNotes') || "");
+            const [chatMessages, setChatMessages] = useState([{ role: 'model', text: "Merhaba Hocam! Ben senin yapay zeka koçunum. Senin için her zaman buradayım." }]);
+            const [inputMsg, setInputMsg] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining());
+            const [dailyQuote, setDailyQuote] = useState("");
+            const [flashcardData, setFlashcardData] = useState(null);
+            const [showFlashcardModal, setShowFlashcardModal] = useState(false);
+            const [isFlashcardFlipped, setIsFlashcardFlipped] = useState(false);
+            const chatEndRef = useRef(null);
+            const timerRef = useRef(null);
+
+            useEffect(() => {
+                const savedKey = localStorage.getItem('gemini_api_key');
+                if(savedKey) setUserApiKey(savedKey);
+                
+                const timer = setInterval(() => setTimeRemaining(calculateTimeRemaining()), 1000);
+                const q = ["Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", "Bugün çalışmadığın yerden yarın soru çıkabilir.", "15 yıllık emek zayi olmaz.", "O sene bu sene!"];
+                setDailyQuote(q[Math.floor(Math.random() * q.length)]);
+                return () => clearInterval(timer);
+            }, []);
+
+            // LocalStorage Sync Effects
+            useEffect(() => { localStorage.setItem('kpssDailyTasks', JSON.stringify(dailyTasks)); }, [dailyTasks]);
+            useEffect(() => { localStorage.setItem('kpssProgress', JSON.stringify(completedTopics)); }, [completedTopics]);
+            useEffect(() => { localStorage.setItem('kpssMistakes', JSON.stringify(mistakes)); }, [mistakes]);
+
+            useEffect(() => {
+                if (isTimerRunning) timerRef.current = setInterval(() => setStopwatch(prev => prev + 1), 1000);
+                else clearInterval(timerRef.current);
+                return () => clearInterval(timerRef.current);
+            }, [isTimerRunning]);
+
+            useEffect(() => { if(activeTab === 'ai') chatEndRef.current?.scrollIntoView({behavior:'smooth'}); }, [chatMessages, activeTab]);
+
+            // AI and Mock Logic
+            const getEffectiveKey = () => userApiKey;
+
+            const simulateAIResponse = (type) => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        if (type === 'test') {
+                            const shuffled = [...MOCK_QUESTIONS].sort(() => 0.5 - Math.random());
+                            resolve(JSON.stringify(shuffled));
+                        } else if (type === 'flashcard') {
+                            const card = MOCK_FLASHCARDS[Math.floor(Math.random() * MOCK_FLASHCARDS.length)];
+                            resolve(JSON.stringify(card));
+                        } else if (type === 'tasks') {
+                            const shuffled = [...MOCK_TASKS].sort(() => 0.5 - Math.random()).slice(0, 3);
+                            resolve(JSON.stringify(shuffled));
+                        } else {
+                            resolve("Çevrimdışı Mod'dasın. Sorularını yanıtlamam için 'Araçlar' menüsünden bir API anahtarı girmelisin. Şimdilik 'Deneme Çöz' kısmındaki hazır soruları kullanabilirsin.");
+                        }
+                    }, 1000);
+                });
+            };
+            
+            const callGemini = async (prompt, isJson = false, type = 'general') => {
+                const key = getEffectiveKey();
+                
+                // Anahtar yoksa Mock veriye dön
+                if (!key) return simulateAIResponse(type);
+
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+                    const body = { contents: [{ parts: [{ text: prompt }] }], generationConfig: isJson ? { responseMimeType: "application/json" } : {} };
+                    const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                    if(!res.ok) throw new Error("API Hatası");
+                    const data = await res.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (e) {
+                    console.error("API Error, switching to mock:", e);
+                    // API hatası alırsak (kota vs) mock veriye dön
+                    return simulateAIResponse(type);
+                }
+            };
+
+            const toggleTopic = (subj, status) => { 
+                setCompletedTopics(prev => ({...prev, [subj]: !status}));
+            };
+            
+            const openLink = (topic, type) => {
+                const url = type === 'youtube' 
+                    ? `https://www.youtube.com/results?search_query=${encodeURIComponent(`KPSS ${topic} konu anlatımı`)}`
+                    : `https://www.google.com/search?q=${encodeURIComponent(`KPSS ${topic} ders notları pdf`)}`;
+                window.open(url, '_blank');
+            };
+
+            const generateFlashcard = async (subject) => {
+                setIsLoading(true); setShowFlashcardModal(true); setFlashcardData(null); setIsFlashcardFlipped(false);
+                try {
+                    const text = await callGemini(`Konu: '${subject}'. Kart hazırla. JSON: {"term":"Kavram","definition":"Tanım","mnemonic":"Kodlama"}`, true, "flashcard");
+                    setFlashcardData(cleanAndParseJSON(text));
+                } catch(e) { setShowFlashcardModal(false); alert("Hata."); } finally { setIsLoading(false); }
+            };
+
+            const startExam = async () => {
+                setQuizState('loading');
+                const topics = examType === 'OABT' ? fullCurriculum.OABT.map(i=>i.subject).join(", ") : fullCurriculum.AGS.map(i=>i.subject).join(", ");
+                try {
+                    const prompt = `KPSS ${examType} için ${questionCount} adet soru yaz. Konular: ${topics.substring(0, 500)}... ANATOMİ YOK. JSON Array formatında: [{"question":"...","options":["A","B","C","D","E"],"correctIndex":0,"explanation":"..."}]`;
+                    const text = await callGemini(prompt, true, "test");
+                    const questions = cleanAndParseJSON(text);
+                    if (!questions || !Array.isArray(questions)) throw new Error("Format");
+                    let finalQuestions = questions;
+                    if(questions.length < questionCount) {
+                         while(finalQuestions.length < questionCount) {
+                             finalQuestions = [...finalQuestions, ...questions];
+                         }
+                         finalQuestions = finalQuestions.slice(0, questionCount);
+                    }
+
+                    setQuizQuestions(finalQuestions);
+                    setCurrentQIndex(0); setUserAnswers({}); setQuizState('active');
+                } catch (e) { alert("Sınav hatası: " + e.message); setQuizState('idle'); }
+            };
+
+            const generateDailyTasks = async () => {
+                setIsLoading(true);
+                try {
+                    const text = await callGemini(`KPSS Günlük Plan (3 madde). JSON Array: ["Görev 1", "Görev 2"]`, true, "tasks");
+                    const tasks = cleanAndParseJSON(text);
+                    if(tasks) {
+                        const newTasks = tasks.map(t => ({ id: Date.now() + Math.random(), text: t, completed: false }));
+                        setDailyTasks(prev => [...newTasks, ...prev]);
+                    }
+                } catch(e) { alert("Hata"); } finally { setIsLoading(false); }
+            };
+
+            const toggleTask = (id, status) => { 
+                setDailyTasks(prev => prev.map(t => t.id === id ? {...t, completed: !status} : t));
+            };
+            const deleteTask = (id) => { 
+                setDailyTasks(prev => prev.filter(t => t.id !== id));
+            };
+
+            const saveMistakes = (newMistakes) => {
+                setMistakes(prev => [...newMistakes, ...prev]);
+            };
+
+            const deleteMistake = (index) => {
+                setMistakes(prev => prev.filter((_, i) => i !== index));
+            };
+
+            const sendMessageToAI = async () => {
+                if (!inputMsg.trim()) return;
+                const userText = inputMsg; setChatMessages(prev => [...prev, { role: 'user', text: userText }]); setInputMsg(''); setIsLoading(true);
+                try {
+                    const text = await callGemini(userText, false, "chat");
+                    setChatMessages(prev => [...prev, { role: 'model', text: text }]);
+                } catch (error) { setChatMessages(prev => [...prev, { role: 'model', text: "Hata." }]); } finally { setIsLoading(false); }
+            };
+
+            const saveApiKey = (val) => { 
+                setUserApiKey(val); 
+                if(val) localStorage.setItem('gemini_api_key', val);
+                else localStorage.removeItem('gemini_api_key');
+            };
+            const saveNote = (val) => { setNotes(val); localStorage.setItem('kpssNotes', val); };
+            const calculateScore = () => {
+                const { gy, gk, egt, oabt } = scoreInputs;
+                setCalculatedScore((40 + (0.3 * (parseFloat(gy) + parseFloat(gk))) + (0.3 * parseFloat(egt)) + (0.6 * parseFloat(oabt))).toFixed(2));
+            };
+
+            return (
+                <div className="flex flex-col h-[100dvh] overflow-hidden bg-gray-50 md:flex-row">
+                    {/* PC Sidebar */}
+                    <div className="hidden md:flex flex-col w-64 bg-white border-r h-full p-4 justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold text-center text-indigo-700 mb-8 brand-font">KPSS 2026</h1>
+                            <nav className="flex flex-col gap-2">
+                                <button onClick={()=>setActiveTab('dashboard')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='dashboard'?'bg-indigo-50 text-indigo-700':'text-gray-500'}`}><IconHome size={20}/> Panel</button>
+                                <button onClick={()=>setActiveTab('planner')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='planner'?'bg-emerald-50 text-emerald-700':'text-gray-500'}`}><IconList size={20}/> Plan</button>
+                                <button onClick={()=>setActiveTab('syllabus')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='syllabus'?'bg-blue-50 text-blue-700':'text-gray-500'}`}><IconBookOpen size={20}/> Müfredat</button>
+                                <button onClick={()=>setActiveTab('smartTest')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='smartTest'?'bg-indigo-50 text-indigo-700':'text-gray-500'}`}><IconTarget size={20}/> Pekiştirme</button>
+                                <button onClick={()=>setActiveTab('mock')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='mock'?'bg-orange-50 text-orange-700':'text-gray-500'}`}><IconPlay size={20}/> Deneme</button>
+                                <button onClick={()=>setActiveTab('mistakes')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='mistakes'?'bg-red-50 text-red-700':'text-gray-500'}`}><IconAlertCircle size={20}/> Hatalar</button>
+                                <button onClick={()=>setActiveTab('tools')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='tools'?'bg-violet-50 text-violet-700':'text-gray-500'}`}><IconTool size={20}/> Araçlar</button>
+                                <button onClick={()=>setActiveTab('ai')} className={`p-3 rounded-lg text-left font-bold flex items-center gap-3 ${activeTab==='ai'?'bg-indigo-50 text-indigo-700':'text-gray-500'}`}><IconBrain size={20}/> AI Koç</button>
+                            </nav>
+                        </div>
+                        {userApiKey ? 
+                            <div className="text-xs text-center text-green-600 bg-green-50 p-2 rounded border border-green-200 flex items-center justify-center gap-1 font-bold"><IconZap size={14}/> Online</div> : 
+                            <div className="text-xs text-center text-gray-500 bg-gray-100 p-2 rounded border border-gray-200 flex items-center justify-center gap-1 font-bold"><IconWifiOff size={14}/> Çevrimdışı</div>
+                        }
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 overflow-hidden relative">
+                        {activeTab === 'dashboard' && <Dashboard dailyQuote={dailyQuote} timeRemaining={timeRemaining} dailyTasks={dailyTasks} completedTopics={completedTopics} setActiveTab={setActiveTab} />}
+                        {activeTab === 'syllabus' && <Syllabus completedTopics={completedTopics} toggleTopic={toggleTopic} openLink={openLink} generateFlashcard={generateFlashcard} />}
+                        {activeTab === 'planner' && <Planner dailyTasks={dailyTasks} generateDailyTasks={generateDailyTasks} toggleTask={toggleTask} deleteTask={deleteTask} isLoading={isLoading} />}
+                        {activeTab === 'smartTest' && <SmartTest callGemini={callGemini} setActiveTab={setActiveTab} setActiveTool={setActiveTool} saveMistakes={saveMistakes} />}
+                        {activeTab === 'mock' && <ExamView quizState={quizState} setQuizState={setQuizState} examType={examType} setExamType={setExamType} questionCount={questionCount} setQuestionCount={setQuestionCount} startExam={startExam} currentQIndex={currentQIndex} setCurrentQIndex={setCurrentQIndex} quizQuestions={quizQuestions} userAnswers={userAnswers} setUserAnswers={setUserAnswers} setActiveTab={setActiveTab} setActiveTool={setActiveTool} saveMistakes={saveMistakes} />}
+                        {activeTab === 'mistakes' && <MistakesView mistakes={mistakes} deleteMistake={deleteMistake} />}
+                        {activeTab === 'tools' && <Tools activeTool={activeTool} setActiveTool={setActiveTool} toolsData={toolsData} userApiKey={userApiKey} saveApiKey={saveApiKey} notes={notes} saveNote={saveNote} scoreInputs={scoreInputs} setScoreInputs={setScoreInputs} calculateScore={calculateScore} calculatedScore={calculatedScore} stopwatch={stopwatch} setIsTimerRunning={setIsTimerRunning} isTimerRunning={isTimerRunning} />}
+                        {activeTab === 'ai' && (
+                            <div className="flex flex-col h-[calc(100vh-80px)] md:h-full bg-white pb-20 md:pb-0">
+                                <div className="bg-gray-50 p-4 border-b font-bold flex justify-between">
+                                    <span>AI Koç</span>
+                                    {userApiKey ? 
+                                        <span className="text-xs bg-green-100 text-green-700 px-2 rounded flex items-center gap-1"><IconZap size={12}/> Online</span> : 
+                                        <span className="text-xs bg-gray-200 px-2 rounded flex items-center gap-1"><IconWifiOff size={12}/> Çevrimdışı</span>
+                                    }
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-4 smooth-scroll">
+                                    {chatMessages.map((m,i)=><div key={i} className={`mb-2 p-2 rounded max-w-[80%] ${m.role==='user'?'bg-indigo-100 self-end ml-auto':'bg-gray-100'}`}>{m.text}</div>)}
+                                    {isLoading && <div className="text-xs text-gray-400">Yazıyor...</div>}
+                                    <div ref={chatEndRef}/>
+                                </div>
+                                <div className="p-3 border-t flex gap-2">
+                                    <input value={inputMsg} onChange={e=>setInputMsg(e.target.value)} className="flex-1 border p-2 rounded" placeholder="Sor..." />
+                                    <button onClick={sendMessageToAI} className="bg-indigo-600 text-white p-2 rounded">Gönder</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="md:hidden fixed bottom-0 w-full bg-white border-t p-2 flex justify-around items-center z-50 safe-area-pb overflow-x-auto hide-scrollbar">
+                        <button onClick={()=>setActiveTab('dashboard')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='dashboard'?'text-indigo-600':'text-gray-400'}`}><IconHome size={22}/><span className="text-[10px] font-bold">Ev</span></button>
+                        <button onClick={()=>setActiveTab('syllabus')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='syllabus'?'text-blue-600':'text-gray-400'}`}><IconBookOpen size={22}/><span className="text-[10px] font-bold">Konu</span></button>
+                        <button onClick={()=>setActiveTab('smartTest')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='smartTest'?'text-indigo-600':'text-gray-400'}`}><IconTarget size={22}/><span className="text-[10px] font-bold">Pekiştir</span></button>
+                        <button onClick={()=>setActiveTab('mock')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='mock'?'text-orange-600':'text-gray-400'}`}><IconPlay size={22}/><span className="text-[10px] font-bold">Sınav</span></button>
+                        <button onClick={()=>setActiveTab('mistakes')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='mistakes'?'text-red-600':'text-gray-400'}`}><IconAlertCircle size={22}/><span className="text-[10px] font-bold">Hata</span></button>
+                        <button onClick={()=>setActiveTab('tools')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='tools'?'text-violet-600':'text-gray-400'}`}><IconTool size={22}/><span className="text-[10px] font-bold">Araç</span></button>
+                        <button onClick={()=>setActiveTab('ai')} className={`flex flex-col items-center p-1 min-w-[50px] ${activeTab==='ai'?'text-indigo-600':'text-gray-400'}`}><IconBrain size={22}/><span className="text-[10px] font-bold">Koç</span></button>
+                    </div>
+
+                    {showFlashcardModal && (
+                        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowFlashcardModal(false)}>
+                            <div className="w-full max-w-md perspective-1000" onClick={e => e.stopPropagation()}>
+                                {isLoading ? (
+                                    <div className="bg-white rounded-xl p-8 flex flex-col items-center justify-center min-h-[300px]">
+                                        <div className="w-12 h-12 border-4 border-yellow-200 border-t-yellow-500 rounded-full animate-spin mb-4"></div>
+                                        <p className="text-gray-600 font-bold animate-pulse">Kart Hazırlanıyor...</p>
+                                    </div>
+                                ) : (
+                                    flashcardData && (
+                                        <div className={`flip-card-container w-full h-[400px] cursor-pointer ${isFlashcardFlipped ? 'flipped' : ''}`} onClick={() => setIsFlashcardFlipped(!isFlashcardFlipped)}>
+                                            <div className="flip-card-inner relative w-full h-full text-center transition-transform duration-700 transform-style-3d">
+                                                <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-white to-yellow-50 border-4 border-yellow-200 rounded-2xl shadow-2xl flex flex-col items-center justify-center p-8">
+                                                    <div className="w-20 h-20 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mb-6 shadow-sm"><IconBrain size={40} /></div>
+                                                    <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{flashcardData.term}</h3>
+                                                    <p className="text-sm text-gray-500 mt-4 animate-bounce">(Cevabı görmek için tıkla)</p>
+                                                </div>
+                                                <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl shadow-2xl flex flex-col items-center justify-center p-8">
+                                                    <h4 className="text-xl font-bold mb-4 border-b border-white/20 pb-2 w-full">{flashcardData.term}</h4>
+                                                    <p className="text-lg mb-6 leading-relaxed overflow-y-auto max-h-[150px]">{flashcardData.definition}</p>
+                                                    <div className="bg-white/10 rounded-xl p-4 w-full"><span className="text-xs uppercase tracking-widest text-yellow-300 font-bold block mb-1">KODLAMA</span><p className="italic text-sm">"{flashcardData.mnemonic}"</p></div>
+                                                    <button className="mt-6 text-sm flex items-center gap-1 text-gray-300 hover:text-white"><IconRotate size={16} /> Çevir</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+
